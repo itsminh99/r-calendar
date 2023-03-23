@@ -60,7 +60,7 @@ const localeOptions = Object.keys(locales)
   }))
   .filter(item => nameMapper[item.value]);
 
-const [locale, setLocale] = React.useState('ja');
+const [locale, setLocale] = React.useState('enUS');
 const [date, setDate] = useState(null);
 
 
@@ -76,7 +76,10 @@ const [date, setDate] = useState(null);
       </option>
     ))}
   </select>
-  <Calendar onChange={item => setDate(item)}
- locale={locales[locale]} date={date} />
+  <Calendar onChange={item => {
+    console.log("onChange", item)
+    setDate(item)
+    }}
+ locale={locales[locale]} date={date} hasTime />
 </div>;
 ```

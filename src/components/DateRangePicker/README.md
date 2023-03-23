@@ -21,6 +21,7 @@ const [state, setState] = useState([
   months={2}
   ranges={state}
   direction="horizontal"
+  hasTime
 />;
 ```
 

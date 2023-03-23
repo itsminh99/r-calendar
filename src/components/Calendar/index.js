@@ -26,6 +26,10 @@ import {
   differenceInDays,
   min,
   max,
+  setHours,
+  setMinutes,
+  getHours,
+  getMinutes,
 } from 'date-fns';
 import defaultLocale from 'date-fns/locale/en-US';
 import coreStyles from '../../styles';
@@ -335,8 +339,12 @@ class Calendar extends PureComponent {
     );
   };
   onDragSelectionStart = date => {
+    const { date: currentDate } = this.props;
+    if (currentDate) {
+      date = setHours(date, getHours(currentDate));
+      date = setMinutes(date, getMinutes(currentDate));
+    }
     const { onChange, dragSelectionEnabled } = this.props;
-
     if (dragSelectionEnabled) {
       this.setState({
         drag: {
@@ -350,7 +358,26 @@ class Calendar extends PureComponent {
     }
   };
 
+  onChangeTime = (value, unit) => {
+    if (!this.props?.date || !this.state.preview?.startDate) return;
+    let newDate, newPreviewDate;
+    if (unit === 'hour') {
+      newDate = setHours(this.props.date, value);
+      newPreviewDate = setHours(this.state.preview.startDate, value);
+    } else {
+      newDate = setMinutes(this.props.date, value);
+      newPreviewDate = setMinutes(this.state.preview.startDate, value);
+    }
+    this.updatePreview(newPreviewDate);
+    this.props.onChange && this.props.onChange(newDate);
+  };
+
   onDragSelectionEnd = date => {
+    const { date: currentDate } = this.props;
+    if (currentDate) {
+      date = setHours(date, getHours(currentDate));
+      date = setMinutes(date, getMinutes(currentDate));
+    }
     const { updateRange, displayMode, onChange, dragSelectionEnabled } = this.props;
 
     if (!dragSelectionEnabled) return;
@@ -372,6 +399,11 @@ class Calendar extends PureComponent {
     }
   };
   onDragSelectionMove = date => {
+    const { date: currentDate } = this.props;
+    if (currentDate) {
+      date = setHours(date, getHours(currentDate));
+      date = setMinutes(date, getMinutes(currentDate));
+    }
     const { drag } = this.state;
     if (!drag.status || !this.props.dragSelectionEnabled) return;
     this.setState({
@@ -415,7 +447,6 @@ class Calendar extends PureComponent {
     const { scrollArea, focusedDate } = this.state;
     const isVertical = direction === 'vertical';
     const monthAndYearRenderer = navigatorRenderer || this.renderMonthAndYear;
-
     const ranges = this.props.ranges.map((range, i) => ({
       ...range,
       color: range.color || rangeColors[i] || color,
@@ -476,7 +507,10 @@ class Calendar extends PureComponent {
                       style={
                         isVertical
                           ? { height: this.estimateMonthSize(index) }
-                          : { height: scrollArea.monthHeight, width: this.estimateMonthSize(index) }
+                          : {
+                              height: scrollArea.monthHeight,
+                              width: this.estimateMonthSize(index),
+                            }
                       }
                       showMonthName
                       showWeekDays={!isVertical}
@@ -493,13 +527,14 @@ class Calendar extends PureComponent {
               isVertical ? this.styles.monthsVertical : this.styles.monthsHorizontal
             )}>
             {new Array(this.props.months).fill(null).map((_, i) => {
-              let monthStep = addMonths(this.state.focusedDate, i);;
+              let monthStep = addMonths(this.state.focusedDate, i);
               if (this.props.calendarFocus === 'backwards') {
                 monthStep = subMonths(this.state.focusedDate, this.props.months - 1 - i);
               }
               return (
                 <Month
                   {...this.props}
+                  date={this.props?.date ? new Date(this.props.date) : undefined}
                   onPreviewChange={onPreviewChange || this.updatePreview}
                   preview={preview || this.state.preview}
                   ranges={ranges}
@@ -516,6 +551,7 @@ class Calendar extends PureComponent {
                   styles={this.styles}
                   showWeekDays={!isVertical || i === 0}
                   showMonthName={!isVertical || i > 0}
+                  onChangeTime={this.onChangeTime}
                 />
               );
             })}
@@ -547,7 +583,7 @@ Calendar.defaultProps = {
   scroll: {
     enabled: false,
   },
-  direction: 'vertical',
+  direction: 'horizontal',
   maxDate: addYears(new Date(), 20),
   minDate: addYears(new Date(), -100),
   rangeColors: ['#3d91ff', '#3ecf8e', '#fed14c'],
@@ -559,6 +595,7 @@ Calendar.defaultProps = {
   calendarFocus: 'forwards',
   preventSnapRefocus: false,
   ariaLabels: {},
+  hasTime: false,
 };
 
 Calendar.propTypes = {
@@ -615,6 +652,7 @@ Calendar.propTypes = {
   calendarFocus: PropTypes.string,
   preventSnapRefocus: PropTypes.bool,
   ariaLabels: ariaLabelsShape,
+  hasTime: PropTypes.bool,
 };
 
 export default Calendar;

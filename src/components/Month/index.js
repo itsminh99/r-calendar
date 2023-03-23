@@ -16,6 +16,7 @@ import {
   eachDayOfInterval,
 } from 'date-fns';
 import { getMonthDisplayRange } from '../../utils';
+import TimePicker from '../TimePicker';
 
 function renderWeekdays(styles, dateOptions, weekdayDisplayFormat) {
   const now = new Date();
@@ -45,6 +46,7 @@ class Month extends PureComponent {
       this.props.fixedHeight
     );
     let ranges = this.props.ranges;
+    // console.log('ranges', ranges);
     if (displayMode === 'dateRange' && drag.status) {
       let { startDate, endDate } = drag.range;
       ranges = ranges.map((range, i) => {
@@ -58,57 +60,62 @@ class Month extends PureComponent {
     }
     const showPreview = this.props.showPreview && !drag.disablePreview;
     return (
-      <div className={styles.month} style={this.props.style}>
-        {this.props.showMonthName ? (
-          <div className={styles.monthName}>
-            {format(this.props.month, this.props.monthDisplayFormat, this.props.dateOptions)}
+      <>
+        <div className={styles.month} style={this.props.style}>
+          {this.props.showMonthName ? (
+            <div className={styles.monthName}>
+              {format(this.props.month, this.props.monthDisplayFormat, this.props.dateOptions)}
+            </div>
+          ) : null}
+          {this.props.showWeekDays &&
+            renderWeekdays(styles, this.props.dateOptions, this.props.weekdayDisplayFormat)}
+          <div className={styles.days} onMouseLeave={this.props.onMouseLeave}>
+            {eachDayOfInterval({ start: monthDisplay.start, end: monthDisplay.end }).map(
+              (day, index) => {
+                const isStartOfMonth = isSameDay(day, monthDisplay.startDateOfMonth);
+                const isEndOfMonth = isSameDay(day, monthDisplay.endDateOfMonth);
+                const isOutsideMinMax =
+                  (minDate && isBefore(day, minDate)) || (maxDate && isAfter(day, maxDate));
+                const isDisabledSpecifically = disabledDates.some(disabledDate =>
+                  isSameDay(disabledDate, day)
+                );
+                const isDisabledDay = disabledDay(day);
+                return (
+                  <DayCell
+                    {...this.props}
+                    ranges={ranges}
+                    day={day}
+                    preview={showPreview ? this.props.preview : null}
+                    isWeekend={isWeekend(day, this.props.dateOptions)}
+                    isToday={isSameDay(day, now)}
+                    isStartOfWeek={isSameDay(day, startOfWeek(day, this.props.dateOptions))}
+                    isEndOfWeek={isSameDay(day, endOfWeek(day, this.props.dateOptions))}
+                    isStartOfMonth={isStartOfMonth}
+                    isEndOfMonth={isEndOfMonth}
+                    key={index}
+                    disabled={isOutsideMinMax || isDisabledSpecifically || isDisabledDay}
+                    isPassive={
+                      !isWithinInterval(day, {
+                        start: monthDisplay.startDateOfMonth,
+                        end: monthDisplay.endDateOfMonth,
+                      })
+                    }
+                    styles={styles}
+                    onMouseDown={this.props.onDragSelectionStart}
+                    onMouseUp={this.props.onDragSelectionEnd}
+                    onMouseEnter={this.props.onDragSelectionMove}
+                    dragRange={drag.range}
+                    drag={drag.status}
+                  />
+                );
+              }
+            )}
           </div>
-        ) : null}
-        {this.props.showWeekDays &&
-          renderWeekdays(styles, this.props.dateOptions, this.props.weekdayDisplayFormat)}
-        <div className={styles.days} onMouseLeave={this.props.onMouseLeave}>
-          {eachDayOfInterval({ start: monthDisplay.start, end: monthDisplay.end }).map(
-            (day, index) => {
-              const isStartOfMonth = isSameDay(day, monthDisplay.startDateOfMonth);
-              const isEndOfMonth = isSameDay(day, monthDisplay.endDateOfMonth);
-              const isOutsideMinMax =
-                (minDate && isBefore(day, minDate)) || (maxDate && isAfter(day, maxDate));
-              const isDisabledSpecifically = disabledDates.some(disabledDate =>
-                isSameDay(disabledDate, day)
-              );
-              const isDisabledDay = disabledDay(day);
-              return (
-                <DayCell
-                  {...this.props}
-                  ranges={ranges}
-                  day={day}
-                  preview={showPreview ? this.props.preview : null}
-                  isWeekend={isWeekend(day, this.props.dateOptions)}
-                  isToday={isSameDay(day, now)}
-                  isStartOfWeek={isSameDay(day, startOfWeek(day, this.props.dateOptions))}
-                  isEndOfWeek={isSameDay(day, endOfWeek(day, this.props.dateOptions))}
-                  isStartOfMonth={isStartOfMonth}
-                  isEndOfMonth={isEndOfMonth}
-                  key={index}
-                  disabled={isOutsideMinMax || isDisabledSpecifically || isDisabledDay}
-                  isPassive={
-                    !isWithinInterval(day, {
-                      start: monthDisplay.startDateOfMonth,
-                      end: monthDisplay.endDateOfMonth,
-                    })
-                  }
-                  styles={styles}
-                  onMouseDown={this.props.onDragSelectionStart}
-                  onMouseUp={this.props.onDragSelectionEnd}
-                  onMouseEnter={this.props.onDragSelectionMove}
-                  dragRange={drag.range}
-                  drag={drag.status}
-                />
-              );
-            }
-          )}
         </div>
-      </div>
+        {!!this.props.hasTime && (
+          <TimePicker {...this.props} onChangeTime={this.props.onChangeTime} />
+        )}
+      </>
     );
   }
 }
@@ -143,6 +150,8 @@ Month.propTypes = {
   showWeekDays: PropTypes.bool,
   showMonthName: PropTypes.bool,
   fixedHeight: PropTypes.bool,
+  hasTime: PropTypes.bool,
+  onChangeTime: PropTypes.func,
 };
 
 export default Month;
